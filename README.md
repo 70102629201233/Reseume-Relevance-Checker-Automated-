@@ -1,90 +1,67 @@
-
 # Innomatics Resume Analyser
 
-An automated system to evaluate candidate resumes against a job description using a combination of keyword matching and semantic analysis. This application is built with Streamlit and uses the Google Gemini API for personalized feedback generation.
+The Innomatics Resume Analyser is an automated system designed to evaluate the relevance of a candidate's resume against a specific job description. It uses a combination of keyword matching (Hard Score) and semantic analysis (Semantic Score) powered by a Gemini AI model to provide a comprehensive final score and personalized feedback.
 
-## Features
+---
 
--   **Resume & JD Parsing:** Extracts text from PDF and DOCX files.
--   **Dual Scoring Model:**
-    -   **Hard Score:** Measures direct keyword matches.
-    -   **Semantic Score:** Analyzes contextual relevance using fuzzy string matching.
--   **Final Verdict:** Provides a "High Fit," "Medium Fit," or "Low Fit" verdict based on a weighted final score.
--   **Personalized Feedback:** Utilizes the Gemini AI to generate detailed, actionable feedback for each candidate.
--   **Data Persistence:** Stores all evaluation results in a local SQLite database.
+### Key Features
 
-## Technologies Used
+* **Secure User Authentication**: Users can create an account, log in, and reset their password.
+* **Resume Evaluation**: Upload multiple resumes and a job description to get a detailed fit analysis.
+* **Dual Scoring System**:
+    * **Hard Score**: Measures the direct presence of essential skills and keywords from the job description.
+    * **Semantic Score**: Evaluates the contextual and thematic relevance of the resume's content.
+* **AI-Generated Feedback**: The system provides intelligent, actionable feedback on each resume, highlighting missing skills and suggesting improvements.
+* **Interactive Dashboard**: View, sort, and manage all evaluation results in a clear, user-friendly dashboard.
+* **Permanent Data Management**: A "Clear All Results" button allows you to permanently delete all stored evaluation data from the database.
 
--   Python
--   Streamlit
--   Google Generative AI (Gemini API)
--   `pdfplumber`
--   `docx2txt`
--   `rapidfuzz`
--   `SQLAlchemy`
--   SQLite
+---
 
-## Getting Started
+### Usage
 
-Follow these steps to set up and run the application locally.
+1.  **Set up the Environment**:
+    * Ensure you have the required Python libraries installed by running: `pip install -r requirements.txt`.
+    * Set your Google Gemini API key as an environment variable or update the `API_KEYS` list in the `app.py` file.
 
-### Prerequisites
+2.  **Run the Application**:
+    * Start the Streamlit application from your terminal: `streamlit run app.py`
 
--   Python 3.8+
--   A Google Gemini API key. You can get one from the [Google AI Studio](https://aistudio.google.com/app/apikey).
- 
-### Installation
+3.  **Create an Account**:
+    * On the login page, click the **"Create Account"** button.
+    * Enter your desired **username**, **email**, and a **password**.
+    * Click "Create Account" to register. You will be redirected back to the login page.
 
-1.  Clone the repository:
-    ```bash
-    git clone [https://github.com/your-username/resume-analyzer-app.git](https://github.com/your-username/resume-analyzer-app.git)
-    cd resume-analyzer-app
-    ```
+4.  **Login**:
+    * Use the **username** and **password** you just created to log in.
 
-2.  Create a virtual environment (recommended):
-    ```bash
-    python -m venv venv
-    source venv/bin/activate   # On Windows, use `venv\Scripts\activate`
-    ```
+5.  **Use the App**:
+    * Navigate to the **"Resume Checker"** page from the sidebar.
+    * Upload a single Job Description file.
+    * Upload one or more Resume files.
+    * Click the **"Check"** button to start the analysis.
+    * After the evaluation is complete, click **"View Results"** to see the scores and feedback on the dashboard.
 
-3.  Install the required packages:
-    ```bash
-    pip install -r requirements.txt
-    ```
+6.  **Dashboard**:
+    * On the **"Dashboard"** page, you can see all evaluation results.
+    * Use the **"Sort by Final Score"** button to organize the results.
+    * The **"Clear Dashboard"** button temporarily hides the results from the screen.
+    * The **"Show All Results"** button brings back the results that were temporarily hidden.
+    * The **"🔴 Clear All Results Permanently"** button will delete all saved data from the database.
 
-### Configuration
+---
 
-Set your Gemini API key as an environment variable. Alternatively, you can directly replace the placeholder API keys in the Python script (`app.py`).
+### Dependencies
 
-On macOS/Linux:
-```bash
-export GOOGLE_API_KEY="YOUR_API_KEY"
-On Windows:
+* `streamlit`
+* `sqlalchemy`
+* `hashlib`
+* `pdfplumber`
+* `docx2txt`
+* `rapidfuzz`
+* `google-generativeai`
 
-Bash
+---
 
-set GOOGLE_API_KEY="YOUR_API_KEY"
-Running the Application
-Ensure your virtual environment is active.
+### License
 
-Run the Streamlit application from your terminal:
-
-Bash
-
-streamlit run app.py
-The application will open in your default web browser at http://localhost:8501.
-
-Usage
-Login: Use the default credentials:
-
-Username: admin
-
-Password: password
-
-Upload Files:
-
-On the Resume Checker page, upload a single job description (PDF/DOCX) and one or more resumes (PDF/DOCX).
-
-Analyze: Click the "Check" button to start the analysis. The results will be saved to a local database (results.db).
-
-View Results: Navigate to the Dashboard page to see the final scores, verdicts, and detailed feedback for each candidate.
+This project is licensed under the MIT License.
