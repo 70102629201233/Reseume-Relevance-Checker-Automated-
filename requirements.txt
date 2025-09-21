@@ -1,1 +1,7 @@
 streamlit
+pdfplumber
+docx2txt
+fuzzywuzzy
+rapidfuzz
+google-generativeai
+SQLAlchemy

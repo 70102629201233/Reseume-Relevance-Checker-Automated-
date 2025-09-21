@@ -1,5 +1,4 @@
-# Resume-Relevance
-Automated Resume Relevance Check System
+
 # Innomatics Resume Analyser
 
 An automated system to evaluate candidate resumes against a job description using a combination of keyword matching and semantic analysis. This application is built with Streamlit and uses the Google Gemini API for personalized feedback generation.
