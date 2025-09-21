@@ -1,67 +1,89 @@
+
 # Innomatics Resume Analyser
 
-The Innomatics Resume Analyser is an automated system designed to evaluate the relevance of a candidate's resume against a specific job description. It uses a combination of keyword matching (Hard Score) and semantic analysis (Semantic Score) powered by a Gemini AI model to provide a comprehensive final score and personalized feedback.
+An automated system to evaluate candidate resumes against a job description using a combination of keyword matching and semantic analysis. This application is built with Streamlit and uses the Google Gemini API for personalized feedback generation.
 
----
+## Features
 
-### Key Features
+-   **Resume & JD Parsing:** Extracts text from PDF and DOCX files.
+-   **Dual Scoring Model:**
+    -   **Hard Score:** Measures direct keyword matches.
+    -   **Semantic Score:** Analyzes contextual relevance using fuzzy string matching.
+-   **Final Verdict:** Provides a "High Fit," "Medium Fit," or "Low Fit" verdict based on a weighted final score.
+-   **Personalized Feedback:** Utilizes the Gemini AI to generate detailed, actionable feedback for each candidate.
+-   **Data Persistence:** Stores all evaluation results in a local SQLite database.
 
-* **Secure User Authentication**: Users can create an account, log in, and reset their password.
-* **Resume Evaluation**: Upload multiple resumes and a job description to get a detailed fit analysis.
-* **Dual Scoring System**:
-    * **Hard Score**: Measures the direct presence of essential skills and keywords from the job description.
-    * **Semantic Score**: Evaluates the contextual and thematic relevance of the resume's content.
-* **AI-Generated Feedback**: The system provides intelligent, actionable feedback on each resume, highlighting missing skills and suggesting improvements.
-* **Interactive Dashboard**: View, sort, and manage all evaluation results in a clear, user-friendly dashboard.
-* **Permanent Data Management**: A "Clear All Results" button allows you to permanently delete all stored evaluation data from the database.
+## Technologies Used
 
----
+-   Python
+-   Streamlit
+-   Google Generative AI (Gemini API)
+-   `pdfplumber`
+-   `docx2txt`
+-   `rapidfuzz`
+-   `SQLAlchemy`
+-   SQLite
 
-### Usage
+## Getting Started
 
-1.  **Set up the Environment**:
-    * Ensure you have the required Python libraries installed by running: `pip install -r requirements.txt`.
-    * Set your Google Gemini API key as an environment variable or update the `API_KEYS` list in the `app.py` file.
+Follow these steps to set up and run the application locally.
 
-2.  **Run the Application**:
-    * Start the Streamlit application from your terminal: `streamlit run app.py`
+### Prerequisites
 
-3.  **Create an Account**:
-    * On the login page, click the **"Create Account"** button.
-    * Enter your desired **username**, **email**, and a **password**.
-    * Click "Create Account" to register. You will be redirected back to the login page.
+-   Python 3.8+
+-   A Google Gemini API key. You can get one from the [Google AI Studio](https://aistudio.google.com/app/apikey).
+ 
+### Installation
 
-4.  **Login**:
-    * Use the **username** and **password** you just created to log in.
+1.  Clone the repository:
+    ```bash
+    git clone [https://github.com/your-username/resume-analyzer-app.git](https://github.com/your-username/resume-analyzer-app.git)
+    cd resume-analyzer-app
+    ```
 
-5.  **Use the App**:
-    * Navigate to the **"Resume Checker"** page from the sidebar.
-    * Upload a single Job Description file.
-    * Upload one or more Resume files.
-    * Click the **"Check"** button to start the analysis.
-    * After the evaluation is complete, click **"View Results"** to see the scores and feedback on the dashboard.
+2.  Create a virtual environment (recommended):
+    ```bash
+    python -m venv venv
+    source venv/bin/activate   # On Windows, use `venv\Scripts\activate`
+    ```
 
-6.  **Dashboard**:
-    * On the **"Dashboard"** page, you can see all evaluation results.
-    * Use the **"Sort by Final Score"** button to organize the results.
-    * The **"Clear Dashboard"** button temporarily hides the results from the screen.
-    * The **"Show All Results"** button brings back the results that were temporarily hidden.
-    * The **"🔴 Clear All Results Permanently"** button will delete all saved data from the database.
+3.  Install the required packages:
+    ```bash
+    pip install -r requirements.txt
+    ```
 
----
+### Configuration
 
-### Dependencies
+Set your Gemini API key as an environment variable. Alternatively, you can directly replace the placeholder API keys in the Python script (`app.py`).
 
-* `streamlit`
-* `sqlalchemy`
-* `hashlib`
-* `pdfplumber`
-* `docx2txt`
-* `rapidfuzz`
-* `google-generativeai`
+On macOS/Linux:
+```bash
+export GOOGLE_API_KEY="YOUR_API_KEY"
+On Windows:
 
----
+Bash
 
-### License
+set GOOGLE_API_KEY="YOUR_API_KEY"
+Running the Application
+Ensure your virtual environment is active.
 
-This project is licensed under the MIT License.
+Run the Streamlit application from your terminal:
+
+Bash
+
+streamlit run app.py
+The application will open in your default web browser at https://resume-checker-automated.streamlit.app/.
+
+Usage
+Create an Account: On the login page, click the "Create Account" button. Fill in your desired username, email, and password to register.
+
+Login: Use the credentials you just created to log in.
+
+Upload Files: Navigate to the "Resume Checker" page from the sidebar. Upload a single job description file and one or more resume files.
+
+Analyze: Click the "Check" button to start the analysis. The results will be saved to a local database (results.db).
+
+View Results: After the evaluation is complete, click "View Results" to navigate to the Dashboard and see the scores, verdicts, and detailed feedback for each candidate.
+
+Dashboard: On the "Dashboard" page, you can see all evaluation results. Use the "Sort by Final Score" button to organize the results. You can also use "Clear Dashboard" to temporarily hide the results or "🔴 Clear All Results Permanently" to delete all saved data from the database.
+
