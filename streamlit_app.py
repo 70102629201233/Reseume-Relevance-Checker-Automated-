@@ -9,6 +9,7 @@ from datetime import datetime
 import google.generativeai as genai
 from sqlalchemy import create_engine, Column, Integer, String, Float, JSON, DateTime, desc
 from sqlalchemy.orm import declarative_base, sessionmaker
+import hashlib
 
 # ---------------- Suppress Warnings & API Setup ----------------
 warnings.filterwarnings("ignore")
@@ -41,20 +42,35 @@ class ResumeResult(Base):
     feedback = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
+class User(Base):
+    __tablename__ = "users"
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String, unique=True, nullable=False)
+    email = Column(String, unique=True, nullable=False)
+    password_hash = Column(String, nullable=False)
+
 Base.metadata.create_all(bind=engine)
 
-# ---------------- Skills Dictionary (Unchanged) ----------------
-JOB_TERMS = { 
-    "python","pandas","numpy","sql","r","excel","powerbi","tableau", 
-    "nlp","ai","ml","machinelearning","deeplearning","automation", 
-    "analysis","analytics","visualization","exploration","engineering", 
-    "automotive","mechanical","manufacturing","production","databricks", 
-    "cloud","azure","aws","docker","git","kubernetes", 
-    "statistics","modelling","science","stakeholders","product", 
-    "spark","kafka","hadoop","etl","bigdata","datavisualization" 
+# ---------------- Skills Dictionary ----------------
+JOB_TERMS = {
+    "python","pandas","numpy","sql","r","excel","powerbi","tableau",
+    "nlp","ai","ml","machinelearning","deeplearning","automation",
+    "analysis","analytics","visualization","exploration","engineering",
+    "automotive","mechanical","manufacturing","production","databricks",
+    "cloud","azure","aws","docker","git","kubernetes",
+    "statistics","modelling","science","stakeholders","product",
+    "spark","kafka","hadoop","etl","bigdata","datavisualization"
 }
 
 # ---------------- Utility Functions ----------------
+def hash_password(password):
+    """Hashes a password using SHA-256."""
+    return hashlib.sha256(password.encode()).hexdigest()
+
+def check_password(hashed_password, user_password):
+    """Checks a user's password against the stored hash."""
+    return hashed_password == hash_password(user_password)
+
 def extract_text(file):
     if file.name.lower().endswith(".pdf"):
         text = ""
@@ -117,14 +133,14 @@ def get_missing_skills(resume_keywords, jd_keywords):
 def generate_feedback(name, missing_skills, hard_score, semantic_score, final_score):
     if not missing_skills and final_score > 70:
         return f"{name} has a strong resume matching the job description well. Keep it up!"
-    
+
     prompt = f"""
     Generate professional resume feedback for {name}, who applied for a technical job.
     Missing skills: {', '.join(missing_skills) if missing_skills else 'None'}.
     Hard score: {hard_score}/100, Semantic score: {semantic_score}/100, Final score: {final_score}/100.
     Suggest practical advice to improve their resume, skills, and employability.
     """
-    
+
     for api_key in API_KEYS:
         try:
             genai.configure(api_key=api_key)
@@ -134,7 +150,7 @@ def generate_feedback(name, missing_skills, hard_score, semantic_score, final_sc
         except Exception as e:
             st.warning(f"An error occurred with the current API key. Trying next key...")
             continue
-            
+
     return "Feedback could not be generated due to API issues. Please try again later."
 
 
@@ -143,7 +159,7 @@ def login_page():
     st.markdown("""
         <style>
             .login-header {
-                font-size: 80px; 
+                font-size: 80px;
                 color: #1F4E79;
                 font-weight: bold;
                 text-align: center;
@@ -151,31 +167,104 @@ def login_page():
             }
         </style>
     """, unsafe_allow_html=True)
-    
+
     st.markdown("<div class='login-header'>Innomatics Resume Analyser</div>", unsafe_allow_html=True)
-    
+
     col_main1, col_main2, col_main3 = st.columns([3, 1, 4])
-    
+
     with col_main1:
         st.image("https://t3.ftcdn.net/jpg/16/36/90/94/360_F_1636909486_F1tC8g6rv3RrDv9qi89s9MwYYc7n2XNh.jpg", width='stretch')
-    
+
     with col_main3:
-        st.markdown("<h2 style='color: #1F4E79;'>Login</h2>", unsafe_allow_html=True)
-        username = st.text_input("Username")
-        password = st.text_input("Password", type="password")
-        if st.button("Login"):
-            if username == "admin" and password == "password":
-                st.session_state.logged_in = True
-                st.session_state.page = "Home"
-                st.rerun()
+        if st.session_state.auth_page == 'login':
+            st.markdown("<h2 style='color: #1F4E79;'>Login</h2>", unsafe_allow_html=True)
+            username = st.text_input("Username")
+            password = st.text_input("Password", type="password")
+            login_col, create_col, reset_col = st.columns(3)
+            with login_col:
+                if st.button("Login", use_container_width=True):
+                    db = SessionLocal()
+                    user = db.query(User).filter_by(username=username).first()
+                    db.close()
+                    if user and check_password(user.password_hash, password):
+                        st.session_state.logged_in = True
+                        st.session_state.page = "Home"
+                        st.session_state.username = username
+                        st.rerun()
+                    else:
+                        st.error("Incorrect username or password")
+            with create_col:
+                if st.button("Create Account", use_container_width=True):
+                    st.session_state.auth_page = 'create_account'
+                    st.rerun()
+            with reset_col:
+                if st.button("Reset Password", use_container_width=True):
+                    st.session_state.auth_page = 'reset_password'
+                    st.rerun()
+
+        elif st.session_state.auth_page == 'create_account':
+            create_account_page()
+        elif st.session_state.auth_page == 'reset_password':
+            reset_password_page()
+
+def create_account_page():
+    st.markdown("<h2 style='color: #1F4E79;'>Create Account</h2>", unsafe_allow_html=True)
+    with st.form("create_account_form"):
+        new_username = st.text_input("New Username")
+        new_email = st.text_input("Email")
+        new_password = st.text_input("New Password", type="password")
+        confirm_password = st.text_input("Confirm Password", type="password")
+        submitted = st.form_submit_button("Create Account")
+
+        if submitted:
+            db = SessionLocal()
+            existing_user = db.query(User).filter_by(username=new_username).first()
+            if existing_user:
+                st.error("Username already exists. Please choose a different one.")
+            elif new_password != confirm_password:
+                st.error("Passwords do not match.")
             else:
-                st.error("Incorrect username or password")
+                hashed_password = hash_password(new_password)
+                new_user = User(username=new_username, email=new_email, password_hash=hashed_password)
+                db.add(new_user)
+                db.commit()
+                st.success("Account created successfully! Please log in.")
+                st.session_state.auth_page = 'login'
+                st.rerun()
+            db.close()
+    if st.button("Back to Login"):
+        st.session_state.auth_page = 'login'
+        st.rerun()
+
+def reset_password_page():
+    st.markdown("<h2 style='color: #1F4E79;'>Reset Password</h2>", unsafe_allow_html=True)
+    with st.form("reset_password_form"):
+        username = st.text_input("Username")
+        new_password = st.text_input("New Password", type="password")
+        confirm_password = st.text_input("Confirm New Password", type="password")
+        submitted = st.form_submit_button("Reset Password")
+
+        if submitted:
+            db = SessionLocal()
+            user = db.query(User).filter_by(username=username).first()
+            if not user:
+                st.error("Username not found.")
+            elif new_password != confirm_password:
+                st.error("Passwords do not match.")
+            else:
+                user.password_hash = hash_password(new_password)
+                db.commit()
+                st.success("Password reset successfully! You can now log in with your new password.")
+                st.session_state.auth_page = 'login'
+                st.rerun()
+            db.close()
+    if st.button("Back to Login"):
+        st.session_state.auth_page = 'login'
+        st.rerun()
 
 def home_page():
     st.markdown("<h3 class='stSubtitle' style='text-align: left; font-weight: bold;'>Automated Resume Relevance Check System</h3>", unsafe_allow_html=True)
-    
     st.markdown("<style> .home-buttons { margin-top: -10px; } </style>", unsafe_allow_html=True)
-    
     st.markdown("<hr style='border: 1px solid #1F4E79; margin-top: -10px; margin-bottom: -10px;'>", unsafe_allow_html=True)
 
     col1, col2 = st.columns([1, 1])
@@ -186,7 +275,7 @@ def home_page():
             st.session_state.page = "Resume Checker"
             st.rerun()
         st.markdown("</div>", unsafe_allow_html=True)
-    
+
     with col2:
         st.markdown("<div style='display: flex; flex-direction: column; align-items: center;'>", unsafe_allow_html=True)
         st.markdown("### Visiting results? 📊")
@@ -197,12 +286,11 @@ def home_page():
 
 def resume_checker_page():
     st.markdown("<h1 class='stTitle'>Innomatics Resume Checker</h1>", unsafe_allow_html=True)
-    
     st.markdown("<h3 style='text-align: center;'>Upload Job Description and Resumes to evaluate candidate fit.</h3>", unsafe_allow_html=True)
-    
+
     st.markdown("### Job Description")
     jd_file = st.file_uploader("Upload Job Description (PDF/DOCX)", type=["pdf", "docx"], key="jd_uploader")
-    
+
     st.markdown("### Resumes")
     resume_files = st.file_uploader("Upload Resumes (PDF/DOCX)", type=["pdf", "docx"], accept_multiple_files=True, key="resumes_uploader")
 
@@ -213,9 +301,9 @@ def resume_checker_page():
         if not jd_file or not resume_files:
             st.error("Please upload both a Job Description and at least one Resume.")
         else:
-            jd_text = extract_text(jd_file) 
-            jd_keywords = jd_text.lower().split() 
-            db = SessionLocal() 
+            jd_text = extract_text(jd_file)
+            jd_keywords = jd_text.lower().split()
+            db = SessionLocal()
 
             try:
                 for resume_file in resume_files:
@@ -224,39 +312,39 @@ def resume_checker_page():
                         db.delete(existing_record)
                         db.commit()
 
-                    resume_text = extract_text(resume_file) 
-                    resume_keywords = resume_text.lower().split() 
-                    hard_score = compute_hard_score(resume_keywords, jd_keywords) 
-                    semantic_score = compute_semantic_score(resume_text.lower(), jd_text.lower()) 
-                    final_score = round(hard_score * 0.7 + semantic_score * 0.3, 2) 
+                    resume_text = extract_text(resume_file)
+                    resume_keywords = resume_text.lower().split()
+                    hard_score = compute_hard_score(resume_keywords, jd_keywords)
+                    semantic_score = compute_semantic_score(resume_text.lower(), jd_text.lower())
+                    final_score = round(hard_score * 0.7 + semantic_score * 0.3, 2)
 
-                    if final_score >= 70: 
-                        verdict = "🟢 High Fit" 
-                    elif final_score >= 50: 
-                        verdict = "🟡 Medium Fit" 
-                    elif final_score >= 30: 
-                        verdict = "🟠 Low Fit" 
-                    else: 
-                        verdict = "🔴 Poor Fit" 
+                    if final_score >= 70:
+                        verdict = "🟢 High Fit"
+                    elif final_score >= 50:
+                        verdict = "🟡 Medium Fit"
+                    elif final_score >= 30:
+                        verdict = "🟠 Low Fit"
+                    else:
+                        verdict = "🔴 Poor Fit"
 
-                    info = extract_candidate_info(resume_text) 
-                    missing_skills = get_missing_skills(resume_keywords, jd_keywords) 
-                    feedback = generate_feedback(info['name'], missing_skills, hard_score, semantic_score, final_score) 
+                    info = extract_candidate_info(resume_text)
+                    missing_skills = get_missing_skills(resume_keywords, jd_keywords)
+                    feedback = generate_feedback(info['name'], missing_skills, hard_score, semantic_score, final_score)
 
-                    record = ResumeResult( 
-                        resume_file=resume_file.name, 
-                        name=info['name'], 
-                        email=info['email'], 
-                        phone=info['phone'], 
-                        hard_score=hard_score, 
-                        semantic_score=semantic_score, 
-                        final_score=final_score, 
-                        verdict=verdict, 
-                        missing_skills=missing_skills, 
-                        feedback=feedback 
-                    ) 
-                    db.add(record) 
-                
+                    record = ResumeResult(
+                        resume_file=resume_file.name,
+                        name=info['name'],
+                        email=info['email'],
+                        phone=info['phone'],
+                        hard_score=hard_score,
+                        semantic_score=semantic_score,
+                        final_score=final_score,
+                        verdict=verdict,
+                        missing_skills=missing_skills,
+                        feedback=feedback
+                    )
+                    db.add(record)
+
                 db.commit()
                 st.success("✅ Evaluation complete!")
                 st.session_state.evaluation_done = True
@@ -272,29 +360,43 @@ def resume_checker_page():
         if st.button("View Results"):
             st.session_state.page = "Dashboard"
             st.session_state.evaluation_done = False
+            # Ensure new results are displayed automatically
+            st.session_state.display_results = True
             st.rerun()
 
 def dashboard_page():
     st.title("Results Dashboard")
     st.markdown("Here you can see the results of all resume evaluations.")
-    
+
     if 'sorted_by_score' not in st.session_state:
         st.session_state.sorted_by_score = False
-    
+
     if 'display_results' not in st.session_state:
         st.session_state.display_results = True
 
-    col1, col2 = st.columns(2)
+    if st.button("🔴 Clear All Results Permanently"):
+        clear_all_results()
+        st.success("All evaluation results have been permanently cleared from the database.")
+        st.session_state.display_results = False
+        st.rerun()
+
+    col1, col2, col3 = st.columns(3)
     with col1:
         if st.button("Sort by Final Score"):
             st.session_state.sorted_by_score = not st.session_state.sorted_by_score
             st.rerun()
-    
+
     with col2:
         if st.button("Clear Dashboard"):
             st.session_state.display_results = False
             st.rerun()
-    
+
+    with col3:
+        if st.button("Show All Results"):
+            st.session_state.display_results = True
+            st.session_state.sorted_by_score = False
+            st.rerun()
+            
     if st.session_state.display_results:
         db = SessionLocal()
         if st.session_state.sorted_by_score:
@@ -318,7 +420,20 @@ def dashboard_page():
         else:
             st.info("No evaluation results found. Please upload and run a new evaluation on the Resume page.")
     else:
-        st.info("Dashboard cleared. Data is still in the database. To view it again, go back to the Resume page or add a 'Show Results' button.")
+        st.info("Dashboard cleared. Data is still in the database. To view it again, go back to the Resume page or click 'Show All Results'.")
+
+
+# New helper function to clear the database
+def clear_all_results():
+    db = SessionLocal()
+    try:
+        db.query(ResumeResult).delete()
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        st.error(f"Failed to clear results: {e}")
+    finally:
+        db.close()
 
 # ----------------- Main App Logic -----------------
 st.set_page_config(layout="wide")
@@ -388,7 +503,7 @@ st.markdown("""
         border-radius: 50%;
         overflow: hidden;
         border: 2px solid #1F4E79;
-        width: 50px; /* Adjust size as needed */
+        width: 50px;
         height: 50px;
     }
     /* New CSS for the main header with background color */
@@ -398,7 +513,7 @@ st.markdown("""
         padding: 10px;
         border-radius: 10px;
         text-align: center;
-        margin-top: -10px; /* Reduced space from the top */
+        margin-top: -10px;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -406,14 +521,14 @@ if 'logged_in' not in st.session_state:
     st.session_state.logged_in = False
 if 'page' not in st.session_state:
     st.session_state.page = "Login"
+if 'auth_page' not in st.session_state:
+    st.session_state.auth_page = "login"
 
 if not st.session_state.logged_in:
     login_page()
 else:
-    # A single column to hold the combined logo and header
     col_main = st.columns([1])[0]
     with col_main:
-        # Use a single markdown block for inline styling and alignment
         st.markdown("""
             <div style="display: flex; align-items: center; justify-content: flex-start; gap: 10px;">
                 <div class="circular-logo">
@@ -422,13 +537,13 @@ else:
                 <h2 style='color: #1F4E79; font-weight: bold;'>Innomatics Resume Analyser</h2>
             </div>
         """, unsafe_allow_html=True)
-    
+
     st.sidebar.markdown(f'<div style="text-align: center;"><img src="https://media.licdn.com/dms/image/v2/C510BAQGCyNM05beRVw/company-logo_200_200/company-logo_200_200/0/1630626033780/innomaticshyd_logo?e=2147483647&v=beta&t=yNdkasvVugaPt4oGo1CmQx45A0DSaN5KW5z2-9qwtrA" width="100"></div>', unsafe_allow_html=True)
     st.sidebar.markdown("<h2 style='text-align: center; color: #1F4E79;'>Innomatics</h2>", unsafe_allow_html=True)
     st.sidebar.markdown("---")
     st.session_state.page = st.sidebar.radio("Go to", ["Home", "Resume Checker", "Dashboard"], index=["Home", "Resume Checker", "Dashboard"].index(st.session_state.page) if st.session_state.page in ["Home", "Resume Checker", "Dashboard"] else 0)
     st.sidebar.markdown("---")
-    
+
     if st.session_state.page == "Home":
         home_page()
     elif st.session_state.page == "Resume Checker":
